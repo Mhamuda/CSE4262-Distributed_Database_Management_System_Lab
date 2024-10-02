@@ -1,0 +1,144 @@
+>>>---------WORD COUNT----------<<<
+
+1. Docker start:
+docker start -i testHadoop
+
+2. Start all hadoop services:
+start-all.sh
+
+3. Go to:
+cd home/hadoop/data
+
+4. Copy files from windows to container (/home/hadoop/data/):
+docker cp C:\Users\mhamu\OneDrive\Desktop\wcdd\wreducer.java testHadoop:/home/hadoop/data/
+docker cp C:\Users\mhamu\OneDrive\Desktop\wcdd\wmapper.java testHadoop:/home/hadoop/data/
+docker cp C:\Users\mhamu\OneDrive\Desktop\wcdd\driver.java testHadoop:/home/hadoop/data/
+
+5. Compile all java files together: main class(driver)
+javac -classpath `hadoop classpath` -d . wmapper.java wreducer.java driver.java
+
+6. Create jar file: (NB: no other .class file pre-exist)
+jar cf wordcount.jar *.class
+
+7. Make a directory to store input file (input.txt):
+mkdir inputFolder
+
+8. Insert input file in the directory:
+docker cp C:\Users\mhamu\OneDrive\Desktop\wcdd\input.txt testHadoop:/home/hadoop/data/inputFolder/
+
+9. Create a directory in HDFS:
+hdfs dfs -mkdir -p /labtask1/input/
+
+10. Put the input.txt file in HDFS:
+hdfs dfs -put ./inputFolder/input.txt /labtask1/input/
+
+11. Run the job:
+hadoop jar wordcount.jar driver /labtask1/input/ /labtask1/output
+
+12. Check the output:
+hdfs dfs -ls /labtask1/output
+
+13. See the output:
+hdfs dfs -cat /labtask1/output/part-r-00000
+
+>>>---------HIVE----------<<<
+->start/ end of word(if needed):
+docker stop testHadoop
+
+->To check running prrocess:
+docker ps
+
+1. Put the data file (MAS_DATA.csv) into container without inverted comma:
+(NB: remove 1st row from csv file)
+docker cp C:\Users\mhamu\OneDrive\Desktop\ED.csv testHadoop:/home/hadoop
+
+2. In container terminal:
+cd home/hadoop
+ls
+
+3. Make directory in HDFS:
+hdfs dfs -mkdir /labtask2
+
+4. Put the MAS_DATA.csv file into HDFS:
+hdfs dfs -put /home/hadoop/MAS_DATA.csv /labtask2
+
+5. Check list to see all folders and files:
+hdfs dfs -ls /labtask2
+
+6. Start hive:
+hive
+
+7. See all databases:
+show databases;
+
+8. Create new database:
+create database labfinal;
+
+9. Use that database;
+use labfinal;
+
+10. Show all tables in that database:
+show tables;
+
+11. Create a temporary table to store all data:
+create external table if not exists student(id int, name string,age int,gender string,city string) 
+row format delimited 
+fields terminated by ',' 
+stored as textfile 
+location '/labtask2/output/';
+
+12. Show tables:
+show tables:
+
+13. Show table description:
+describe student;
+
+14. Load data into temporary (student) table:
+load data inpath '/labtask2/MAS_DATA.csv' into table student;
+
+15. Select all data from temporary table to see:
+select * from student;
+
+16. For dynamic partitioning:
+set hive.exec.dynamic.partition = true;
+set hive.exec.dynamic.partition.mode=nonstatic;
+
+17.Create partition table for gender:
+create external table if not exists sgender_part(id int,name string,age int,city string) 
+partitioned by (gender string) 
+row format delimited 
+fields terminated by ',' 
+stored as textfile 
+location '/labtask2/output';
+
+18. Show tables and describe table:
+show tables;
+describe sgender_part;
+
+19. Inser data for partitioning into partitioned table:
+insert into table sgender_part partition(gender) select id,name,age,city,gender from student;
+
+20. Select table to see all data:
+select * from sgender_part;
+
+21. For dynamic partitioning:
+set hive.exec.dynamic.partition = true;
+set hive.exec.dynamic.partition.mode=nonstatic;
+
+22.Create partition table for city:
+create external table if not exists scity_part(id int) 
+partitioned by (city string) 
+row format delimited 
+fields terminated by ',' 
+stored as textfile 
+location '/labtask2/output';
+
+23. Show tables and describe table:
+show tables;
+describe scity_part;
+
+24. Inser data for partitioning into partitioned table:
+insert into table scity_part partition(city) select id,city from student;
+
+25. Select table to see all data:
+select * from scity_part;
